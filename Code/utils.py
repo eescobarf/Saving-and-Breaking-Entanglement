@@ -29,25 +29,28 @@ def is_es_qubit(choi):
     M = ptm[1:4, 1:4]
     c = ptm[1:4, 0]
 
+    # Tolerance for numerical stability
+    tol=1e-7
+
     # Check determinant, as in the qubit case this would mean that the channel es EB direfctly.
-    if np.linalg.det(M) == 0:
+    if np.isclose(np.linalg.det(M), 0, atol = tol):
         return False
 
     # Check if the channel is unital, i.e if c = 0
-    unital = np.array_equal(c, np.zeros(3))
+    unital = np.allclose(c, np.zeros(3), atol = tol)
 
     # Divide in unital and non unital case
     if unital:       
         eigenvalues = np.linalg.eigvals(M)
-        return any(eig == -1 for eig in eigenvalues)
+        return any(np.isclose(np.abs(eig), 1, atol = tol) for eig in eigenvalues)
     else:
         # For the non unital case, we check if (M - I) n = -c has a solution with ||n|| = 1 (pure state)
         A = M - np.eye(3)
         b = -c
         # Solve A @ n = b
         n, residuals, rank, _ = np.linalg.lstsq(A, b, rcond=None)
-        if residuals.size == 0 or np.all(residuals == 0):  # Exact solution exists
+        if residuals.size == 0 or np.allclose(residuals, 0, atol = tol):  
             # Check if n is a unit vector 
-            if np.isclose(np.linalg.norm(n), 1):
+            if np.isclose(np.linalg.norm(n), 1, atol = tol):
                 return True
         return False
